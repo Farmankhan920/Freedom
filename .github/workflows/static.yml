@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diamond Top-up App</title>
+    <style>
+        /* Basic Reset & Global Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #ff9a00 0%, #ff5e00 100%); color: #fff; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding-top: 70px; padding-bottom: 20px; overflow-x: hidden; }
+
+        .top-bar-controls {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10000;
+        }
+        #globalCoinDisplay { background-color: rgba(255, 215, 0, 0.9); color: #333; padding: 8px 15px; border-radius: 20px; font-size: 16px; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: transform 0.3s ease; }
+        #globalCoinDisplay:hover { transform: scale(1.05); }
+        #historyButton { background-color: rgba(0, 123, 255, 0.9); color: white; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: transform 0.3s ease; border: none; cursor: pointer; }
+        #historyButton:hover { transform: scale(1.05); background-color: rgba(0, 100, 200, 0.9); }
+
+
+        .screen { display: none; background-color: #444444; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); width: 90%; margin: auto; animation: fadeIn 0.5s ease-out; color: #fff;}
+        #loginScreen { padding: 0; max-width: 400px; background-color: #3a3a3a; box-shadow: 0 5px 20px rgba(0,0,0,0.25); }
+        #productListScreen, #purchaseFormScreen, #congratulationsScreen, #adminPasswordScreen, #adminPanelScreen, #coinsScreen, #historyScreen { padding: 20px; max-width: 450px; text-align: left; }
+        #purchaseFormScreen h2, #congratulationsScreen h1, #adminPasswordScreen h2, #adminPanelScreen h2, #coinsScreen h2, #historyScreen h2 { text-align: center; color: #ffc107; margin-bottom: 25px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .screen.active { display: block; }
+        #productListScreen h2.screen-title { font-size: 24px; font-weight: bold; color: #ffc107; margin-bottom: 8px; }
+        #productListScreen p.screen-description { font-size: 14px; color: #ccc; margin-bottom: 25px; }
+        button.default-app-button { background: linear-gradient(45deg, #ff7e5f, #feb47b); color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; text-transform: uppercase; width: 100%; margin-top: 5px; }
+        button.default-app-button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 126, 95, 0.5); }
+        button.default-app-button:active { transform: translateY(0); box-shadow: 0 2px 5px rgba(255, 126, 95, 0.4); }
+        button.secondary-action { background: #6c757d; margin-top:10px; }
+        button.secondary-action:hover { box-shadow: 0 5px 15px rgba(108,117,125, 0.3); }
+        input.default-app-input[type="text"], input.default-app-input[type="email"], input.default-app-input[type="tel"], input.default-app-input[type="password"] { width: calc(100% - 0px); /* Adjusted for full width inside form */ padding: 12px; margin-bottom: 15px; border: 1px solid #666; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; background-color: #555; color: #fff; }
+        input.default-app-input:focus { border-color: #ffc107; outline: none; background-color: #606060; }
+        input.default-app-input::placeholder { color: #aaa; }
+        .product-section { margin-bottom: 30px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .section-header h3 { font-size: 18px; font-weight: 600; color: #ffc107; }
+        .section-header h3 .item-count { font-size: 16px; font-weight: normal; color: #bbb; }
+        .show-all-link { font-size: 14px; color: #00aaff; text-decoration: none; font-weight: 500; }
+        .items-scroller { display: flex; overflow-x: auto; padding-bottom: 15px; gap: 15px; }
+        .items-scroller::-webkit-scrollbar { height: 5px; } .items-scroller::-webkit-scrollbar-thumb { background: #777; border-radius: 10px; } .items-scroller::-webkit-scrollbar-track { background: #555; }
+        .product-item { background-color: #505050; border-radius: 12px; padding: 12px; width: 160px; flex-shrink: 0; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease-out; }
+        .product-item:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .product-item img { width: 100%; height: 100px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; background-color: #606060; padding: 5px; }
+        .product-item .product-name { font-size: 14px; font-weight: 500; color: #fff; margin-bottom: 4px; line-height: 1.3; height: 2.6em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-item .product-price { font-size: 15px; font-weight: bold; color: #ffeb3b; margin-bottom: 8px; }
+        .product-item .product-availability { font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; color: #ccc; }
+        .product-availability .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; } .product-availability .dot.available { background-color: #4caf50; } .product-availability .dot.unavailable { background-color: #f44336; }
+        .product-item .buy-button { background: #ff9800; color: white; padding: 8px 10px; font-size: 13px; font-weight: 500; width: 100%; margin-top: auto; text-transform: none; border: none; border-radius: 8px; cursor: pointer; }
+        .product-item .buy-button:hover { background: #e68a00; box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4); }
+        .product-item .buy-button:disabled { background: #777; cursor: not-allowed; color: #aaa;}
+        #congratulationsScreen h1 { font-size: 2.5em; animation: textPop 0.5s ease-out, colorChangeFF 2s infinite alternate; }
+        #congratulationsScreen p {text-align: center; margin-top: 15px; font-size: 1.1em; color: #ddd;}
+        @keyframes textPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes colorChangeFF { 0% { color: #ff4e50; } 25% { color: #ffc107; } 50% { color: #4caf50; } 75% { color: #03a9f4; } 100% { color: #f44336; } }
+        .fireworks-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; z-index: 9999; }
+        .particle { position: absolute; width: 8px; height: 8px; border-radius: 50%; opacity: 0; animation: fireworkBurst 1.5s ease-out forwards; }
+        @keyframes fireworkBurst { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-150px) scale(0.5); } }
+        #adminPanelScreen { max-width: 95%; } #adminPanelScreen table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 11px; }
+        #adminPanelScreen th, #adminPanelScreen td { border: 1px solid #666; padding: 5px; text-align: left; word-break: break-all; color: #ddd;}
+        #adminPanelScreen th { background-color: #555; color: #ffc107; }
+        #allUsersDataContainer { max-height: 300px; overflow-y: auto; border: 1px solid #666; border-radius: 8px; background-color: #4a4a4a; }
+        .admin-access-button { position: fixed; bottom: 20px; right: 20px; background: #ffc107; color: #333; padding: 10px 15px; border-radius: 50px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); width: auto; text-transform: none; border: none; cursor: pointer; }
+        .admin-access-button:hover { box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4); }
+
+        #loginScreen .hero { padding: 30px 20px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #3a3a3a; border-radius: 15px; position: relative; padding-bottom: 30px; } /* Reduced padding */
+        #loginScreen .form { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1rem; width: 100%; }
+        /* Updated login input styles to match default-app-input */
+        #loginScreen .login-input-field { width: 90%; padding: 12px; margin: 0.6rem 0; /* Reduced margin */ border-radius: 8px; display: block; border: 1px solid #555; box-shadow: none; outline: none; background-color: #4a4a4a; color: #fff; font-size: 0.9rem; }
+        #loginScreen .login-input-field::placeholder { color: #999; }
+        #loginScreen .login-input-field:focus { border-color: #ffc107; }
+
+        #loginScreen .submit , #loginScreen .btn { margin-top: 1rem; font-weight: bold; box-shadow: none; background-color: #ff6f00; color: white; cursor: pointer; border: none; border-radius: 0.3rem; width: 90%; /* Match input width */ padding: 12px; font-size: 0.9rem; }
+        #loginScreen .submit:hover, #loginScreen .btn:hover { background-color: #e65100; }
+        #loginScreen .btn { text-align: center; background-color: transparent; color: #ffc107; font-weight: 600; margin-top: 1rem; padding: 10px 1.2rem; }
+        #loginScreen .btn:hover { background-color: transparent; text-decoration: underline; }
+        #loginScreen .logo { font-family: 'Russo One', 'Grand Hotel', cursive; font-size: 2.2rem; color: #ffc107; font-weight: 500; margin-bottom: 20px; text-shadow: 1px 1px 2px #000; }
+        #loginScreen .forgotten { text-align: center; font-size: .75rem; width: 90%; color: #ffc107; margin: 10px 0; }
+        #loginScreen a { color: inherit; font-weight: 600; text-decoration: none; } #loginScreen a:hover { text-decoration: underline; }
+        #loginScreen .or { position: relative; font-weight: bold; color: #aaa; margin: 0.8rem 0; width: 90%; text-align: center; }
+        #loginScreen .or::before , #loginScreen .or::after { position: absolute; content: ''; width: 40%; height: 1px; top: 50%; background-color: #555; }
+        #loginScreen .or::before { right: calc(50% + 20px); } #loginScreen .or::after { left: calc(50% + 20px); }
+        #loginScreen .signup-container { background-color: #444; border: 1px solid #555; margin-top: 0px; padding: 15px 20px; text-align: center; border-radius: 0 0 15px 15px; width:100%;} /* Attached to bottom of hero */
+        #loginScreen .signup-container p {color: #ccc; font-size: 0.85rem;} #loginScreen .signup-container a {color: #ffc107; font-weight:600;}
+
+        #coinsScreen { position: relative; }
+        #coinsScreen .coin-controls { text-align: center; margin-bottom: 20px; }
+        #coinsScreen .coin-controls button { width: auto; padding: 10px 20px; margin: 0 10px; }
+        #loadingContainer { width: 100%; background-color: #666; border-radius: 25px; padding: 3px; margin: 20px 0; box-shadow: inset 0 1px 3px rgba(0,0,0,.2); }
+        #progressBar { height: 20px; width: 0%; background-color: #ff9800; border-radius: 20px; text-align: center; line-height: 20px; color: white; transition: width 0.2s linear; }
+        #coinsScreen .message { text-align: center; margin-top: 15px; font-style: italic; color: #ccc; min-height: 1.2em; }
+        .coin-added-popup { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background-color: rgba(255, 152, 0, 0.95); color: white; padding: 12px 25px; border-radius: 25px; font-size: 1.3em; font-weight: bold; opacity: 0; transition: opacity 0.4s ease-out, transform 0.4s ease-out; pointer-events: none; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .coin-added-popup.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .admin-coin-input { width: 60px; padding: 3px; text-align: right; border-radius: 3px; border: 1px solid #777; margin-right: 5px; background-color: #555; color: #fff;}
+        .admin-coin-save-btn { padding: 3px 6px; font-size: 10px; margin-left: 0px; background-color: #4caf50; color:white; border:none; border-radius:3px; cursor:pointer; }
+        .admin-coin-save-btn:hover { background-color: #45a049; }
+
+        #historyScreenTable { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
+        #historyScreenTable th, #historyScreenTable td { border: 1px solid #666; padding: 8px; text-align: left; color: #ddd; }
+        #historyScreenTable th { background-color: #555; color: #ffc107; }
+        #historyScreenTable tr:nth-child(even) { background-color: #4f4f4f; }
+        #historyScreen .no-history { text-align: center; margin-top: 20px; color: #aaa; }
+        .diamond-icon { width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;}
+
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <div class="top-bar-controls">
+        <div id="globalCoinDisplay">Coins: 0</div>
+        <button id="historyButton" onclick="showHistoryScreen()">History</button>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="hero">
+           <form class="form" onsubmit="event.preventDefault(); handleLogin();">
+                <div class="logo">Diamond TopUp</div>
+                <input type="text" id="loginFullName" class="login-input-field" placeholder="Full Name (Required for new account)">
+                <input type="text" id="loginIdentifier" required class="login-input-field" placeholder="Email or Mobile Number">
+                <input type="password" id="loginPassword" required class="login-input-field" placeholder="Password">
+                <button type="submit" class="submit">Log In / Register</button>
+                <div class="or">OR</div>
+                <div class="btn" onclick="alert('Social login not implemented.')" style="color: #4285F4; background-color: white; border: 1px solid #ddd;">
+                    <svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512" style="height: 1em; margin-right: 8px;"><path fill="currentColor" d="M488 261.8C488 403.3 381.7 512 244 512 113.3 512 0 398.7 0 256S113.3 0 244 0c69.3 0 125.5 24.1 169.7 64.2L360.3 120C324.5 89.2 288.5 72.1 244 72.1c-73.1 0-133.1 60.3-133.1 134.5s60 134.5 133.1 134.5c79.9 0 112.2-54.4 115.3-83.1H244v-65.6h238.2c1.6 10.7 2.5 22.4 2.5 34.9z"></path></svg>
+                    Log in with Google
+                </div>
+                <p class="forgotten"><a href="#" onclick="event.preventDefault(); alert('Password recovery not implemented yet.');">Forgot password?</a></p>
+            </form>
+        </div>
+        <div class="signup-container">
+            <p>New? Fill all fields to register. Existing user? Email/Mobile & Password to login.</p>
+        </div>
+    </div>
+
+    <!-- Product List Screen (Diamond Packs) -->
+    <div id="productListScreen" class="screen">
+        <h2 class="screen-title">Diamond Top-up Store</h2>
+        <p class="screen-description">Purchase Free Fire diamonds using your earned coins.</p>
+        <button class="default-app-button" onclick="showScreen('coinsScreen')" style="margin-bottom: 20px; background: linear-gradient(45deg, #2196F3, #00BCD4); margin-top: 0;">💰 Earn Free Coins</button>
+        <div id="productSectionsContainer">
+            <!-- Diamond packs will be populated here by JavaScript -->
+        </div>
+        <button class="admin-access-button" onclick="showAdminPasswordPrompt()">Admin Panel</button>
+    </div>
+
+    <!-- Coins Screen -->
+    <div id="coinsScreen" class="screen">
+        <h2>Earn Free Coins</h2>
+        <div class="coin-controls">
+            <button id="startCoinEarningBtn" class="default-app-button" style="background-color: #4CAF50;">Start Earning</button>
+            <button id="stopCoinEarningBtn" class="default-app-button" style="background-color: #f44336; display: none;">Stop Earning</button>
+        </div>
+        <div id="loadingContainer">
+            <div id="progressBar">0%</div>
+        </div>
+        <p class="message" id="coinMessage">Click "Start Earning" to get free coins!</p>
+        <div id="coinAddedPopup" class="coin-added-popup"></div>
+        <button onclick="showScreen('productListScreen')" class="default-app-button secondary-action" style="margin-top: 30px;">Back to Diamond Store</button>
+    </div>
+
+    <!-- Transaction History Screen -->
+    <div id="historyScreen" class="screen">
+        <h2>Diamond Purchase History</h2>
+        <div id="historyContainer">
+            <table id="historyScreenTable">
+                <thead>
+                    <tr>
+                        <th>Diamond Pack</th>
+                        <th>Coins Spent</th>
+                        <th>Date & Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- History items will be populated here -->
+                </tbody>
+            </table>
+            <p class="no-history" id="noHistoryMessage" style="display:none;">No diamond purchases yet.</p>
+        </div>
+        <button onclick="showScreen('productListScreen')" class="default-app-button secondary-action" style="margin-top: 30px;">Back to Diamond Store</button>
+    </div>
+
+    <!-- Congratulations Screen -->
+    <div id="congratulationsScreen" class="screen">
+        <h1 id="congratsMessage">Congratulations!</h1>
+        <p id="congratsDetails"></p>
+        <div class="fireworks-container" id="fireworksContainer"></div>
+        <button onclick="showScreen('productListScreen')" class="default-app-button secondary-action" style="margin-top: 30px;">Back to Diamond Store</button>
+    </div>
+
+    <div id="adminPasswordScreen" class="screen">
+        <h2>Admin Access</h2>
+        <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" class="default-app-input"> <!-- Changed to default-app-input -->
+        <button onclick="checkAdminPassword()" class="default-app-button">Enter</button>
+        <button onclick="showScreen('productListScreen')" class="default-app-button secondary-action">Cancel</button>
+    </div>
+
+    <div id="adminPanelScreen" class="screen">
+        <h2>Admin Panel - User Data</h2>
+        <div id="allUsersDataContainer">
+             <table id="userDataDisplay"><thead><tr><th>#</th><th>Full Name</th><th>User ID (Email/Mobile)</th><th>Password</th><th>Coins</th><th>Actions</th><th>Login Time</th></tr></thead><tbody></tbody></table>
+        </div>
+        <button onclick="showScreen('productListScreen')" class="default-app-button" style="margin-top:20px; width: auto; padding: 10px 20px;">Back to Diamond Store</button>
+    </div>
+
+    <script>
+        const screens = document.querySelectorAll('.screen');
+        const ALL_USERS_KEY = 'allFFDiamondUsersData_v2'; // Version increment
+        const CURRENT_USER_IDENTIFIER_KEY = 'currentFFDiamondUser_v2'; // Version increment
+        const ADMIN_PASSWORD = "Faiz920";
+
+        let currentUserIdentifier = null;
+        let isEarningCoins = false;
+        let coinEarningTimeoutId = null;
+
+        const globalCoinDisplay = document.getElementById('globalCoinDisplay');
+        const startCoinBtn = document.getElementById('startCoinEarningBtn');
+        const stopCoinBtn = document.getElementById('stopCoinEarningBtn');
+        const progressBar = document.getElementById('progressBar');
+        const coinMessage = document.getElementById('coinMessage');
+        const coinAddedPopup = document.getElementById('coinAddedPopup');
+        const productSectionsContainer = docume
